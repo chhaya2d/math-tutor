@@ -1,0 +1,73 @@
+"use client";
+import { useState } from "react";
+
+export default function Home() {
+  const [files, setFiles] = useState<FileList | null>(null);
+  const [text, setText] = useState("");
+  const [analysis, setAnalysis] = useState("");
+
+  const handleUpload = async () => {
+	if (!files || files.length === 0) {
+    		alert("Select images");
+    		return;
+  	}
+
+  	let combinedText = "";
+
+  	for (let i = 0; i < files.length; i++) {
+  	  	const formData = new FormData();
+    		formData.append("file", files[i]);
+
+    		const res = await fetch("/api/ocr", {
+      			method: "POST",
+      			body: formData,
+    		});
+
+    		const data = await res.json();
+
+    		combinedText += `\n--- Page ${i + 1} ---\n`;
+    		combinedText += data.text + "\n";
+  	}
+
+ 	 setText(combinedText);
+  };
+
+  const handleAnalyze = async () => {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // ✅ required here
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    const data = await res.json();
+    setAnalysis(data.output);
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Math Scanner</h2>
+
+      <input
+        type="file"
+        accept="image/*"  // ✅ restrict to images
+	multiple   // ✅ important
+  	onChange={(e) => setFiles(e.target.files)}
+      />
+
+      <br /><br />
+
+      <button onClick={handleUpload}>Extract Text</button>
+      <button onClick={handleAnalyze} style={{ marginLeft: 10 }}>
+        Analyze
+      </button>
+
+      <h3>OCR Output</h3>
+      <pre>{text}</pre>
+
+      <h3>Analysis</h3>
+      <pre>{analysis}</pre>
+    </div>
+  );
+}
